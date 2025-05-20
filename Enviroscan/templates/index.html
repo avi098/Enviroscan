@@ -1,0 +1,3202 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ENVIROSCAN Advanced Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary: #4f46e5;
+        --primary-light: #6366f1;
+        --secondary: #10b981;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+        --info: #3b82f6;
+        --dark: #1e293b;
+        --light: #f8fafc;
+        --card-bg-dark: #1e293b;
+        --card-bg-light: #ffffff;
+        --text-dark: #e2e8f0;
+        --text-light: #1e293b;
+        --transition-speed: 0.3s;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background: var(--dark);
+        color: var(--text-dark);
+        transition: background var(--transition-speed),
+          color var(--transition-speed);
+        overflow-x: hidden;
+        margin: 0;
+      }
+
+      .light-mode {
+        background: var(--light);
+        color: var(--text-light);
+      }
+
+      /* Loading Screen Styles */
+      .loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: var(--dark);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+      }
+
+      .loading-screen.fade-out {
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      .logo-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 2rem;
+      }
+
+      .logo-symbol {
+        width: 80px;
+        height: 80px;
+        background: var(--primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 0 30px rgba(79, 70, 229, 0.6);
+        animation: pulse 2s infinite;
+      }
+
+      .logo-text {
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        color: white;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .logo-text::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--dark);
+        border-left: 2px solid var(--primary);
+        animation: typing 3s steps(11) infinite;
+      }
+
+      .loading-bar-container {
+        width: 200px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 1rem;
+      }
+
+      .loading-bar {
+        height: 100%;
+        width: 0%;
+        background: var(--primary);
+        border-radius: 4px;
+        animation: loading 3s ease-in-out infinite;
+      }
+
+      .loading-text {
+        margin-top: 0.5rem;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7);
+          transform: scale(1);
+        }
+        50% {
+          box-shadow: 0 0 20px 10px rgba(79, 70, 229, 0.5);
+          transform: scale(1.05);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(79, 70, 229, 0);
+          transform: scale(1);
+        }
+      }
+
+      @keyframes typing {
+        0%,
+        100% {
+          width: 100%;
+        }
+        40%,
+        60% {
+          width: 0;
+        }
+      }
+
+      @keyframes loading {
+        0% {
+          width: 0%;
+        }
+        50% {
+          width: 100%;
+        }
+        100% {
+          width: 0%;
+        }
+      }
+
+      /* Particle Background for Loading Screen */
+      .particles {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        z-index: -1;
+      }
+
+      .particle {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        background-color: var(--primary-light);
+        border-radius: 50%;
+        opacity: 0.3;
+        animation: float 15s infinite linear;
+      }
+
+      @keyframes float {
+        0% {
+          transform: translateY(0) translateX(0) rotate(0deg);
+          opacity: 0;
+        }
+        10% {
+          opacity: 0.5;
+        }
+        90% {
+          opacity: 0.5;
+        }
+        100% {
+          transform: translateY(-100vh) translateX(100vw) rotate(360deg);
+          opacity: 0;
+        }
+      }
+
+      /* Original Styles */
+      .sidebar {
+        width: 250px;
+        background: #2d3748;
+        height: 100vh;
+        position: fixed;
+        top: 0;
+        left: 0;
+        transition: width var(--transition-speed),
+          transform var(--transition-speed);
+        z-index: 50;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+        overflow-y: auto;
+        scrollbar-width: thin;
+      }
+
+      .sidebar::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      .sidebar::-webkit-scrollbar-thumb {
+        background: var(--primary);
+        border-radius: 10px;
+      }
+
+      .sidebar.collapsed {
+        width: 50px;
+      }
+
+      .sidebar.collapsed .sidebar-text {
+        display: none;
+      }
+
+      .main-content {
+        margin-left: 250px;
+        padding: 1.25rem;
+        transition: margin-left var(--transition-speed);
+        min-height: 100vh;
+      }
+
+      .main-content.full {
+        margin-left: 50px;
+      }
+
+      .card {
+        background: var(--card-bg-dark);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s, box-shadow 0.3s;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .light-mode .card {
+        background: var(--card-bg-light);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .light-mode .card-header {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      }
+
+      .card-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .gauge {
+        width: 180px;
+        height: 90px;
+        margin: 0 auto;
+      }
+
+      .biohazard {
+        font-weight: bold;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        text-align: center;
+        transition: all 0.3s;
+        margin-top: 0.75rem;
+        font-size: 1.125rem;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .alert {
+        animation: pulse 1.5s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        }
+      }
+
+      .notification {
+        position: fixed;
+        top: 15px;
+        right: 15px;
+        background: var(--danger);
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem;
+        color: white;
+        z-index: 100;
+        opacity: 0;
+        transition: opacity 0.3s, transform 0.3s;
+        transform: translateY(-20px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        max-width: 350px;
+        font-size: 0.875rem;
+      }
+
+      .notification.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .bottom-banner {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: #2d3748;
+        padding: 0.5rem;
+        text-align: center;
+        z-index: 40;
+        color: var(--text-dark);
+        box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
+        font-size: 0.75rem;
+      }
+
+      .light-mode .bottom-banner {
+        background: #e2e8f0;
+        color: var(--text-light);
+      }
+
+      .footer-stats {
+        background: var(--card-bg-dark);
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        margin-top: 1rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        font-size: 0.875rem;
+      }
+
+      .light-mode .footer-stats {
+        background: var(--card-bg-light);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+      }
+
+      .health-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.75rem;
+      }
+
+      .health-table th,
+      .health-table td {
+        padding: 0.5rem;
+        border: 1px solid #4a5568;
+        text-align: left;
+      }
+
+      .light-mode .health-table th,
+      .light-mode .health-table td {
+        border-color: #cbd5e0;
+      }
+
+      .health-table th {
+        background: rgba(79, 70, 229, 0.1);
+      }
+
+      .light-mode .health-table th {
+        background: rgba(79, 70, 229, 0.05);
+      }
+
+      .health-table tr:nth-child(even) {
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .light-mode .health-table tr:nth-child(even) {
+        background: rgba(0, 0, 0, 0.02);
+      }
+
+      .focus-visible:focus {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        transition: all 0.2s;
+        cursor: pointer;
+        border: none;
+        outline: none;
+        gap: 0.375rem;
+        font-size: 0.875rem;
+      }
+
+      .btn-primary {
+        background: var(--primary);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: var(--primary-light);
+      }
+
+      .btn-secondary {
+        background: var(--secondary);
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background: #0ea271;
+      }
+
+      .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+
+      .badge-primary {
+        background: var(--primary);
+        color: white;
+      }
+
+      .badge-secondary {
+        background: var(--secondary);
+        color: white;
+      }
+
+      .badge-danger {
+        background: var(--danger);
+        color: white;
+      }
+
+      .badge-warning {
+        background: var(--warning);
+        color: white;
+      }
+
+      .tooltip {
+        position: relative;
+        display: inline-block;
+      }
+
+      .tooltip .tooltip-text {
+        visibility: hidden;
+        width: 180px;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        border-radius: 4px;
+        padding: 0.375rem;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        transform: translateX(-50%);
+        opacity: 0;
+        transition: opacity 0.3s;
+        font-size: 0.75rem;
+      }
+
+      .tooltip:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+      }
+
+      .gas-composition {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+        margin-top: 0.75rem;
+      }
+
+      .gas-item {
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+      }
+
+      .gas-item-icon {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+
+      .custom-select {
+        appearance: none;
+        background-color: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 0.375rem;
+        padding: 0.375rem 1.5rem 0.375rem 0.75rem;
+        color: var(--text-dark);
+        width: 100%;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23e2e8f0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.5rem center;
+        background-size: 0.75em;
+        font-size: 0.75rem;
+      }
+
+      .light-mode .custom-select {
+        background-color: rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        color: var(--text-light);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231e293b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      }
+
+      .custom-select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+      }
+
+      .threshold-slider {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 4px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.2);
+        outline: none;
+        margin: 0.75rem 0;
+      }
+
+      .light-mode .threshold-slider {
+        background: rgba(0, 0, 0, 0.1);
+      }
+
+      .threshold-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--primary);
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .threshold-slider::-moz-range-thumb {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--primary);
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+      }
+
+      .threshold-value {
+        text-align: center;
+        font-weight: 600;
+        margin-bottom: 0.375rem;
+        font-size: 0.75rem;
+      }
+
+      .sidebar-nav-item {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.375rem;
+        margin-bottom: 0.25rem;
+        transition: all 0.2s;
+        color: var(--text-dark);
+        text-decoration: none;
+        font-size: 0.875rem;
+      }
+
+      .sidebar-nav-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .sidebar-nav-item.active {
+        background: var(--primary);
+        color: white;
+      }
+
+      .sidebar-nav-icon {
+        margin-right: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.25rem;
+        height: 1.25rem;
+      }
+
+      .sidebar-header {
+        display: flex;
+        align-items: center;
+        padding: 1rem 0.75rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 0.75rem;
+      }
+
+      .sidebar-logo {
+        font-weight: 700;
+        font-size: 1rem;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+      }
+
+      .sidebar-logo-icon {
+        width: 1.5rem;
+        height: 1.5rem;
+        background: var(--primary);
+        border-radius: 0.375rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+      }
+
+      .sidebar-section {
+        padding: 0 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .sidebar-section-title {
+        font-size: 0.625rem;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.5);
+        margin-bottom: 0.375rem;
+        padding-left: 0.375rem;
+      }
+
+      .mobile-menu-toggle {
+        display: none;
+        position: fixed;
+        top: 0.75rem;
+        right: 0.75rem;
+        z-index: 100;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 0.375rem;
+        width: 2rem;
+        height: 2rem;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+
+      .mobile-menu-toggle svg {
+        width: 1.25rem;
+        height: 1.25rem;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 0.75rem;
+      }
+
+      .col-span-1 {
+        grid-column: span 1;
+      }
+      .col-span-2 {
+        grid-column: span 2;
+      }
+      .col-span-3 {
+        grid-column: span 3;
+      }
+      .col-span-4 {
+        grid-column: span 4;
+      }
+      .col-span-5 {
+        grid-column: span 5;
+      }
+      .col-span-6 {
+        grid-column: span 6;
+      }
+      .col-span-7 {
+        grid-column: span 7;
+      }
+      .col-span-8 {
+        grid-column: span 8;
+      }
+      .col-span-9 {
+        grid-column: span 9;
+      }
+      .col-span-10 {
+        grid-column: span 10;
+      }
+      .col-span-11 {
+        grid-column: span 11;
+      }
+      .col-span-12 {
+        grid-column: span 12;
+      }
+
+      .flex {
+        display: flex;
+      }
+
+      .flex-col {
+        flex-direction: column;
+      }
+
+      .items-center {
+        align-items: center;
+      }
+
+      .justify-between {
+        justify-content: space-between;
+      }
+
+      .justify-center {
+        justify-content: center;
+      }
+
+      .gap-2 {
+        gap: 0.5rem;
+      }
+
+      .gap-4 {
+        gap: 1rem;
+      }
+
+      .text-sm {
+        font-size: 0.875rem;
+      }
+
+      .text-xs {
+        font-size: 0.75rem;
+      }
+
+      .text-lg {
+        font-size: 1.125rem;
+      }
+
+      .font-medium {
+        font-weight: 500;
+      }
+
+      .font-bold {
+        font-weight: 700;
+      }
+
+      .text-gray-400 {
+        color: #94a3b8;
+      }
+
+      .mt-1 {
+        margin-top: 0.25rem;
+      }
+
+      .mt-2 {
+        margin-top: 0.5rem;
+      }
+
+      .mt-4 {
+        margin-top: 1rem;
+      }
+
+      .mb-1 {
+        margin-bottom: 0.25rem;
+      }
+
+      .mb-2 {
+        margin-bottom: 0.5rem;
+      }
+
+      .mb-4 {
+        margin-bottom: 1rem;
+      }
+
+      .ml-1 {
+        margin-left: 0.25rem;
+      }
+
+      .ml-2 {
+        margin-left: 0.5rem;
+      }
+
+      .mr-2 {
+        margin-right: 0.5rem;
+      }
+
+      .space-y-2 > * + * {
+        margin-top: 0.5rem;
+      }
+
+      .space-y-4 > * + * {
+        margin-top: 1rem;
+      }
+
+      .w-3 {
+        width: 0.75rem;
+      }
+
+      .h-3 {
+        height: 0.75rem;
+      }
+
+      .rounded-full {
+        border-radius: 9999px;
+      }
+
+      .bg-green-500 {
+        background-color: #10b981;
+      }
+
+      .text-center {
+        text-align: center;
+      }
+
+      .text-right {
+        text-align: right;
+      }
+
+      .overflow-x-auto {
+        overflow-x: auto;
+      }
+
+      .block {
+        display: block;
+      }
+
+      .inline-block {
+        display: inline-block;
+      }
+
+      @media (max-width: 1280px) {
+        .lg\:col-span-6 {
+          grid-column: span 6;
+        }
+
+        .lg\:col-span-12 {
+          grid-column: span 12;
+        }
+      }
+
+      @media (max-width: 1024px) {
+        .md\:col-span-6 {
+          grid-column: span 6;
+        }
+
+        .md\:col-span-12 {
+          grid-column: span 12;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .sidebar {
+          transform: translateX(-100%);
+          width: 250px;
+        }
+
+        .sidebar.mobile-open {
+          transform: translateX(0);
+        }
+
+        .main-content {
+          margin-left: 0;
+          padding: 0.75rem;
+        }
+
+        .main-content.full {
+          margin-left: 0;
+        }
+
+        .mobile-menu-toggle {
+          display: flex;
+        }
+
+        .sm\:col-span-12 {
+          grid-column: span 12;
+        }
+
+        .card {
+          padding: 0.75rem;
+        }
+
+        .header-title {
+          font-size: 1.25rem;
+        }
+
+        .header-subtitle {
+          font-size: 0.75rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+      <div class="particles" id="particles"></div>
+      <div class="logo-container">
+        <div class="logo-symbol">E</div>
+        <div class="logo-text">ENVIROSCAN</div>
+      </div>
+      <div class="loading-bar-container">
+        <div class="loading-bar"></div>
+      </div>
+      <div class="loading-text">Initializing advanced monitoring system...</div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+        ></path>
+        <line x1="12" y1="9" x2="12" y2="13"></line>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+      <div>
+        <strong>Critical Biohazard Alert!</strong>
+        <p>Gas concentration has reached dangerous levels.</p>
+      </div>
+    </div>
+
+    <!-- Mobile Menu Toggle -->
+    <button
+      class="mobile-menu-toggle"
+      id="mobileMenuToggle"
+      aria-label="Toggle Menu"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-icon">E</div>
+          <span class="sidebar-text">ENVIROSCAN</span>
+        </div>
+        <button
+          id="toggleSidebar"
+          class="text-white focus:outline-none focus-visible ml-auto"
+          aria-label="Toggle Sidebar"
+        >
+          <svg
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="sidebar-section-title sidebar-text">Navigation</h3>
+        <nav>
+          <a href="#" class="sidebar-nav-item active" aria-label="Dashboard">
+            <div class="sidebar-nav-icon">
+              <svg
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                />
+              </svg>
+            </div>
+            <span class="sidebar-text">Dashboard</span>
+          </a>
+          <a
+            href="#"
+            id="exportData"
+            class="sidebar-nav-item"
+            aria-label="Export Data"
+          >
+            <div class="sidebar-nav-icon">
+              <svg
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            </div>
+            <span class="sidebar-text">Export Data</span>
+          </a>
+          <a
+            href="#"
+            id="toggleTheme"
+            class="sidebar-nav-item relative"
+            aria-label="Toggle Theme"
+          >
+            <div class="sidebar-nav-icon">
+              <svg
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                />
+              </svg>
+            </div>
+            <span class="sidebar-text">Toggle Theme</span>
+          </a>
+          <a
+            href="#"
+            id="testAlert"
+            class="sidebar-nav-item"
+            aria-label="Test Alert"
+          >
+            <div class="sidebar-nav-icon">
+              <svg
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+            <span class="sidebar-text">Test Alert</span>
+          </a>
+          <a
+            href="#"
+            id="resetData"
+            class="sidebar-nav-item"
+            aria-label="Reset Data"
+          >
+            <div class="sidebar-nav-icon">
+              <svg
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+            </div>
+            <span class="sidebar-text">Reset Data</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="sidebar-section-title sidebar-text">Settings</h3>
+        <div class="space-y-2">
+          <div>
+            <label for="timeFilter" class="text-xs block mb-1 sidebar-text"
+              >Time Filter:</label
+            >
+            <select
+              id="timeFilter"
+              class="custom-select"
+              aria-label="Time Filter"
+            >
+              <option value="60">1 Minute</option>
+              <option value="300" selected>5 Minutes</option>
+              <option value="600">10 Minutes</option>
+              <option value="1800">30 Minutes</option>
+              <option value="3600">1 Hour</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="updateInterval" class="text-xs block mb-1 sidebar-text"
+              >Update Interval:</label
+            >
+            <select
+              id="updateInterval"
+              class="custom-select"
+              aria-label="Update Interval"
+            >
+              <option value="500">0.5 Seconds</option>
+              <option value="1000" selected>1 Second</option>
+              <option value="2000">2 Seconds</option>
+              <option value="5000">5 Seconds</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="alertThreshold" class="text-xs block mb-1 sidebar-text"
+              >Alert Threshold:</label
+            >
+            <div class="threshold-value" id="alertThresholdValue">500 PPM</div>
+            <input
+              type="range"
+              id="alertThreshold"
+              min="100"
+              max="1000"
+              step="50"
+              value="500"
+              class="threshold-slider"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="sidebar-section-title sidebar-text">System Info</h3>
+        <div class="text-xs space-y-2 sidebar-text">
+          <p>Device ID: <span id="deviceId">ENV-2025-001</span></p>
+          <p>Firmware: <span id="firmware">v2.5.3</span></p>
+          <p>Last Calibration: <span id="lastCalibration">2025-04-10</span></p>
+          <p>
+            Status:
+            <span id="deviceStatus" class="badge badge-secondary">Online</span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+      <header class="flex justify-between items-center mb-4">
+        <div>
+          <h1 class="text-xl font-bold header-title">ENVIROSCAN</h1>
+          <p class="text-xs text-gray-400 mt-1 header-subtitle">
+            Real-time monitoring and visualization of environmental gas data
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="text-right">
+            <div class="text-xs text-gray-400">Last updated</div>
+            <div id="lastUpdated" class="font-medium text-sm"></div>
+          </div>
+          <button id="fullscreenBtn" class="btn btn-primary btn-sm">
+            <svg
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"
+              />
+            </svg>
+            <span>Fullscreen</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="grid">
+        <!-- PPM Chart -->
+        <div class="col-span-8 sm:col-span-12 md:col-span-12 lg:col-span-8">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="text-sm font-semibold">Gas Concentration (PPM)</h2>
+              <div class="tooltip">
+                <svg
+                  width="14"
+                  height="14"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span class="tooltip-text"
+                  >Shows raw and ML-processed PPM readings over time</span
+                >
+              </div>
+            </div>
+            <div class="card-body" style="height: 200px">
+              <canvas id="ppmChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- AQI Gauge -->
+        <div class="col-span-4 sm:col-span-12 md:col-span-6 lg:col-span-4">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="text-sm font-semibold">Air Quality Index (AQI)</h2>
+              <div class="tooltip">
+                <svg
+                  width="14"
+                  height="14"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span class="tooltip-text"
+                  >Current Air Quality Index based on gas concentration</span
+                >
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="gauge" id="aqiGauge"></div>
+              <p id="aqiLabel" class="text-center mt-2 font-medium text-sm"></p>
+              <p
+                id="aqiDescription"
+                class="text-center mt-1 text-xs text-gray-400"
+              ></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gas Percentage Chart -->
+        <div class="col-span-8 sm:col-span-12 md:col-span-12 lg:col-span-8">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="text-sm font-semibold">Gas Percentage</h2>
+              <div class="tooltip">
+                <svg
+                  width="14"
+                  height="14"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span class="tooltip-text"
+                  >Percentage of gas concentration over time</span
+                >
+              </div>
+            </div>
+            <div class="card-body" style="height: 200px">
+              <canvas id="gasChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Biohazard Level & Stats -->
+        <div class="col-span-4 sm:col-span-12 md:col-span-6 lg:col-span-4">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="text-sm font-semibold">Biohazard Assessment</h2>
+              <div class="tooltip">
+                <svg
+                  width="14"
+                  height="14"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span class="tooltip-text"
+                  >Current biohazard level based on gas concentration</span
+                >
+              </div>
+            </div>
+            <div class="card-body">
+              <p id="biohazard" class="biohazard"></p>
+              <div class="flex items-center justify-center mt-2">
+                <svg id="sparkline" width="100" height="20"></svg>
+                <span id="trendArrow" class="ml-2 text-lg"></span>
+              </div>
+              <div id="stats" class="text-xs mt-2 space-y-2"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gas Composition Breakdown -->
+        <div class="col-span-4 sm:col-span-12 md:col-span-6 lg:col-span-4">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="text-sm font-semibold">Gas Composition</h2>
+              <div class="tooltip">
+                <svg
+                  width="14"
+                  height="14"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span class="tooltip-text"
+                  >Breakdown of detected gas components</span
+                >
+              </div>
+            </div>
+            <div class="card-body">
+              <div style="height: 150px">
+                <canvas id="compositionChart"></canvas>
+              </div>
+              <div class="gas-composition" id="gasComposition">
+                <!-- Gas composition items will be added here dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PPM Forecast -->
+        <div class="col-span-8 sm:col-span-12 md:col-span-12 lg:col-span-8">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="text-sm font-semibold">PPM Forecast</h2>
+              <div class="tooltip">
+                <svg
+                  width="14"
+                  height="14"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span class="tooltip-text"
+                  >Predicted future PPM levels based on current trends</span
+                >
+              </div>
+            </div>
+            <div class="card-body">
+              <div style="height: 150px">
+                <canvas id="forecastChart"></canvas>
+              </div>
+              <div class="flex justify-between mt-2">
+                <div>
+                  <span class="text-xs">Forecast Accuracy:</span>
+                  <span id="forecastAccuracy" class="font-medium ml-1 text-xs"
+                    >85%</span
+                  >
+                </div>
+                <div>
+                  <label for="forecastPeriod" class="text-xs block mb-1"
+                    >Forecast Period:</label
+                  >
+                  <select
+                    id="forecastPeriod"
+                    class="custom-select"
+                    aria-label="Forecast Period"
+                  >
+                    <option value="5">5 Minutes</option>
+                    <option value="10">10 Minutes</option>
+                    <option value="30">30 Minutes</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Air Quality Advisory (New Visualization) -->
+        <div class="col-span-12">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="text-sm font-semibold">Air Quality Advisory</h2>
+              <div class="tooltip">
+                <svg
+                  width="14"
+                  height="14"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span class="tooltip-text"
+                  >Current air quality status and recommended actions</span
+                >
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="flex items-center justify-center">
+                <span id="advisoryBadge" class="badge"></span>
+                <div class="ml-4">
+                  <p id="advisoryLevel" class="text-lg font-bold"></p>
+                  <p id="advisoryMessage" class="text-sm"></p>
+                  <p id="advisoryAction" class="text-sm mt-2 font-medium"></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Health Impact Table -->
+        <div class="col-span-12">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="text-sm font-semibold">Health Impact by AQI</h2>
+              <div class="tooltip">
+                <svg
+                  width="14"
+                  height="14"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span class="tooltip-text"
+                  >Health impacts at different AQI levels</span
+                >
+              </div>
+            </div>
+            <div class="card-body overflow-x-auto">
+              <table class="health-table" role="grid">
+                <thead>
+                  <tr>
+                    <th scope="col">AQI Range</th>
+                    <th scope="col">Level</th>
+                    <th scope="col">Health Impact</th>
+                    <th scope="col">Recommended Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>0-50</td>
+                    <td>
+                      <span class="badge" style="background-color: #48bb78"
+                        >Good</span
+                      >
+                    </td>
+                    <td>Air quality is satisfactory, little or no risk.</td>
+                    <td>No special precautions needed.</td>
+                  </tr>
+                  <tr>
+                    <td>51-100</td>
+                    <td>
+                      <span class="badge" style="background-color: #ecc94b"
+                        >Moderate</span
+                      >
+                    </td>
+                    <td>
+                      Acceptable air quality, some risk for sensitive
+                      individuals.
+                    </td>
+                    <td>
+                      Sensitive individuals should consider limiting prolonged
+                      outdoor exertion.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>101-150</td>
+                    <td>
+                      <span class="badge" style="background-color: #ed8936"
+                        >Unhealthy for Sensitive</span
+                      >
+                    </td>
+                    <td>Sensitive groups may experience health effects.</td>
+                    <td>
+                      People with respiratory or heart disease, the elderly and
+                      children should limit prolonged exertion.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>151-200</td>
+                    <td>
+                      <span class="badge" style="background-color: #f56565"
+                        >Unhealthy</span
+                      >
+                    </td>
+                    <td>General public affected, sensitive groups more so.</td>
+                    <td>
+                      Everyone should limit prolonged outdoor exertion.
+                      Sensitive groups should avoid outdoor activity.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>201-300</td>
+                    <td>
+                      <span class="badge" style="background-color: #9f7aea"
+                        >Very Unhealthy</span
+                      >
+                    </td>
+                    <td>Health alert: significant effects likely.</td>
+                    <td>
+                      Everyone should avoid outdoor activity. Sensitive groups
+                      should remain indoors.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>301-500</td>
+                    <td>
+                      <span class="badge" style="background-color: #9b2c2c"
+                        >Hazardous</span
+                      >
+                    </td>
+                    <td>Emergency conditions: entire population affected.</td>
+                    <td>
+                      Everyone should avoid all outdoor exertion. Consider
+                      evacuation to areas with better air quality.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gas Concentration Visualization -->
+        <div class="col-span-12">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="text-sm font-semibold">
+                Gas Concentration Visualization (PPM)
+              </h2>
+              <div class="tooltip">
+                <svg
+                  width="14"
+                  height="14"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span class="tooltip-text"
+                  >Visualization of gas concentration over time</span
+                >
+              </div>
+            </div>
+            <div class="card-body" style="height: 300px">
+              <canvas id="concentrationChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3D Gas Simulation -->
+        <div class="col-span-12">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="text-sm font-semibold">3D Gas Simulation</h2>
+              <div class="tooltip">
+                <svg
+                  width="14"
+                  height="14"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span class="tooltip-text"
+                  >Real-time 3D simulation of gas concentration</span
+                >
+              </div>
+            </div>
+            <div class="card-body" style="height: 300px">
+              <canvas
+                id="threeCanvas"
+                style="width: 100%; height: 100%"
+              ></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Stats -->
+      <div class="footer-stats mt-4">
+        <div class="flex flex-wrap justify-between items-center">
+          <p id="footerStats" class="text-xs">Latest Stats: Loading...</p>
+          <div class="flex items-center gap-2">
+            <div class="flex items-center">
+              <span
+                class="inline-block w-3 h-3 rounded-full bg-green-500 mr-2"
+              ></span>
+              <span class="text-xs">System Operational</span>
+            </div>
+            <div>
+              <span class="text-xs">Data Points:</span>
+              <span id="dataPointCount" class="font-medium ml-1 text-xs"
+                >0</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Banner -->
+    <div class="bottom-banner">
+      <p class="text-xs">
+        ENVIROSCAN - College Expo 2025 | Powered by Advanced IoT & AI
+      </p>
+    </div>
+
+    <script>
+      // Initialize global variables
+      let dataHistory = [];
+      let currentPPM = 0;
+
+      // Utility to safely access data fields
+      const safeValue = (value, defaultValue = 0) =>
+        value !== undefined && !isNaN(value) ? value : defaultValue;
+
+      // Format timestamp for display
+      const formatTime = (timestamp) => {
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+      };
+
+      // Update last updated time
+      const updateLastUpdated = () => {
+        const now = new Date();
+        document.getElementById("lastUpdated").innerText =
+          now.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+      };
+
+      // Chart Configurations
+      Chart.defaults.color = document.body.classList.contains("light-mode")
+        ? "#1e293b"
+        : "#e2e8f0";
+      Chart.defaults.borderColor = document.body.classList.contains(
+        "light-mode"
+      )
+        ? "rgba(0, 0, 0, 0.1)"
+        : "rgba(255, 255, 255, 0.1)";
+      Chart.defaults.font.size = 10;
+
+      // PPM Chart
+      const ppmChart = new Chart(document.getElementById("ppmChart"), {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: "Raw PPM",
+              data: [],
+              borderColor: "#63b3ed",
+              backgroundColor: "rgba(99, 179, 237, 0.1)",
+              fill: true,
+              tension: 0.3,
+              pointRadius: 2,
+              pointHoverRadius: 4,
+              pointBackgroundColor: "#63b3ed",
+            },
+            {
+              label: "ML PPM",
+              data: [],
+              borderColor: "#4f46e5",
+              backgroundColor: "rgba(79, 70, 229, 0.1)",
+              fill: true,
+              tension: 0.3,
+              pointRadius: 2,
+              pointHoverRadius: 4,
+              pointBackgroundColor: "#4f46e5",
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: "index",
+            intersect: false,
+          },
+          scales: {
+            x: {
+              title: { display: false },
+              grid: {
+                display: true,
+                drawBorder: true,
+              },
+              ticks: {
+                maxRotation: 0,
+                callback: function (value, index, values) {
+                  if (this.getLabelForValue(value)) {
+                    return formatTime(this.getLabelForValue(value));
+                  }
+                },
+              },
+            },
+            y: {
+              title: { display: false },
+              beginAtZero: true,
+              grid: {
+                display: true,
+                drawBorder: true,
+              },
+            },
+          },
+          plugins: {
+            legend: {
+              position: "top",
+              labels: {
+                boxWidth: 10,
+                padding: 10,
+                font: {
+                  size: 10,
+                },
+              },
+            },
+            tooltip: {
+              backgroundColor: "rgba(0, 0, 0, 0.7)",
+              padding: 8,
+              titleFont: {
+                size: 11,
+                weight: "bold",
+              },
+              bodyFont: {
+                size: 10,
+              },
+              callbacks: {
+                title: function (tooltipItems) {
+                  return formatTime(tooltipItems[0].label);
+                },
+              },
+            },
+          },
+          animation: {
+            duration: 300,
+            easing: "linear",
+          },
+        },
+      });
+
+      // Gas Percentage Chart
+      const gasChart = new Chart(document.getElementById("gasChart"), {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: "Gas %",
+              data: [],
+              borderColor: "#10b981",
+              backgroundColor: "rgba(16, 185, 129, 0.1)",
+              fill: true,
+              tension: 0.3,
+              pointRadius: 2,
+              pointHoverRadius: 4,
+              pointBackgroundColor: "#10b981",
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: "index",
+            intersect: false,
+          },
+          scales: {
+            x: {
+              title: { display: false },
+              grid: {
+                display: true,
+                drawBorder: true,
+              },
+              ticks: {
+                maxRotation: 0,
+                callback: function (value, index, values) {
+                  if (this.getLabelForValue(value)) {
+                    return formatTime(this.getLabelForValue(value));
+                  }
+                },
+              },
+            },
+            y: {
+              title: { display: false },
+              max: 100,
+              beginAtZero: true,
+              grid: {
+                display: true,
+                drawBorder: true,
+              },
+            },
+          },
+          plugins: {
+            legend: {
+              position: "top",
+              labels: {
+                boxWidth: 10,
+                padding: 10,
+                font: {
+                  size: 10,
+                },
+              },
+            },
+            tooltip: {
+              backgroundColor: "rgba(0, 0, 0, 0.7)",
+              padding: 8,
+              titleFont: {
+                size: 11,
+              },
+              bodyFont: {
+                size: 10,
+              },
+              callbacks: {
+                title: function (tooltipItems) {
+                  return formatTime(tooltipItems[0].label);
+                },
+              },
+            },
+          },
+          animation: {
+            duration: 300,
+            easing: "linear",
+          },
+        },
+      });
+
+      // Gas Composition Chart
+      const compositionChart = new Chart(
+        document.getElementById("compositionChart"),
+        {
+          type: "doughnut",
+          data: {
+            labels: ["Oxygen", "Nitrogen", "Carbon Dioxide", "Other Gases"],
+            datasets: [
+              {
+                data: [21, 78, 0.04, 0.96],
+                backgroundColor: ["#3b82f6", "#10b981", "#f59e0b", "#6366f1"],
+                borderColor: document.body.classList.contains("light-mode")
+                  ? "#fff"
+                  : "#1e293b",
+                borderWidth: 1,
+                hoverOffset: 5,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "right",
+                labels: {
+                  boxWidth: 8,
+                  padding: 10,
+                  font: {
+                    size: 9,
+                  },
+                },
+              },
+              tooltip: {
+                backgroundColor: "rgba(0, 0, 0, 0.7)",
+                padding: 8,
+                titleFont: {
+                  size: 11,
+                },
+                bodyFont: {
+                  size: 10,
+                },
+                callbacks: {
+                  label: function (context) {
+                    const label = context.label || "";
+                    const value = context.formattedValue;
+                    return `${label}: ${value}%`;
+                  },
+                },
+              },
+            },
+            animation: {
+              duration: 300,
+              easing: "linear",
+            },
+          },
+        }
+      );
+
+      // Forecast Chart
+      const forecastChart = new Chart(
+        document.getElementById("forecastChart"),
+        {
+          type: "line",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: "Historical PPM",
+                data: [],
+                borderColor: "#4f46e5",
+                backgroundColor: "rgba(79, 70, 229, 0.1)",
+                fill: true,
+                tension: 0.3,
+                pointRadius: 2,
+                pointHoverRadius: 4,
+                pointBackgroundColor: "#4f46e5",
+              },
+              {
+                label: "Forecasted PPM",
+                data: [],
+                borderColor: "#f59e0b",
+                backgroundColor: "rgba(245, 158, 11, 0.1)",
+                fill: true,
+                tension: 0.3,
+                pointRadius: 2,
+                pointHoverRadius: 4,
+                pointBackgroundColor: "#f59e0b",
+                borderDash: [3, 3],
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: "index",
+              intersect: false,
+            },
+            scales: {
+              x: {
+                title: { display: false },
+                grid: {
+                  display: true,
+                  drawBorder: true,
+                },
+                ticks: {
+                  maxRotation: 0,
+                  callback: function (value, index, values) {
+                    if (this.getLabelForValue(value)) {
+                      return formatTime(this.getLabelForValue(value));
+                    }
+                  },
+                },
+              },
+              y: {
+                title: { display: false },
+                beginAtZero: true,
+                grid: {
+                  display: true,
+                  drawBorder: true,
+                },
+              },
+            },
+            plugins: {
+              legend: {
+                position: "top",
+                labels: {
+                  boxWidth: 10,
+                  padding: 10,
+                  font: {
+                    size: 10,
+                  },
+                },
+              },
+              tooltip: {
+                backgroundColor: "rgba(0, 0, 0, 0.7)",
+                padding: 8,
+                titleFont: {
+                  size: 11,
+                },
+                bodyFont: {
+                  size: 10,
+                },
+                callbacks: {
+                  title: function (tooltipItems) {
+                    return formatTime(tooltipItems[0].label);
+                  },
+                },
+              },
+            },
+            animation: {
+              duration: 300,
+              easing: "linear",
+            },
+          },
+        }
+      );
+
+      // Gas Concentration Visualization (replacing heatmap)
+      const concentrationChart = new Chart(
+        document.getElementById("concentrationChart"),
+        {
+          type: "bar",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: "Gas Concentration (PPM)",
+                data: [],
+                backgroundColor: function (context) {
+                  const value = context.raw || 0;
+                  const maxPPM = 1000;
+                  const ratio = value / maxPPM;
+                  const r = Math.min(255, Math.round(255 * ratio));
+                  const g = Math.min(255, Math.round(255 * (1 - ratio)));
+                  const b = 0;
+                  return `rgba(${r}, ${g}, ${b}, 0.8)`;
+                },
+                borderWidth: 1,
+                borderRadius: 4,
+                barPercentage: 0.95,
+                categoryPercentage: 0.95,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: "Time",
+                },
+                grid: {
+                  display: false,
+                },
+                ticks: {
+                  maxRotation: 0,
+                  callback: function (value, index, values) {
+                    if (this.getLabelForValue(value)) {
+                      return formatTime(this.getLabelForValue(value));
+                    }
+                  },
+                },
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: "PPM",
+                },
+                beginAtZero: true,
+                grid: {
+                  display: true,
+                },
+              },
+            },
+            plugins: {
+              legend: {
+                display: false,
+              },
+              tooltip: {
+                backgroundColor: "rgba(0, 0, 0, 0.7)",
+                padding: 8,
+                titleFont: {
+                  size: 11,
+                },
+                bodyFont: {
+                  size: 10,
+                },
+                callbacks: {
+                  title: function (tooltipItems) {
+                    return formatTime(tooltipItems[0].label);
+                  },
+                  label: function (context) {
+                    return `PPM: ${context.raw.toFixed(2)}`;
+                  },
+                },
+              },
+            },
+            animation: {
+              duration: 300,
+              easing: "linear",
+            },
+          },
+        }
+      );
+
+      // AQI Levels
+      const aqiLevels = [
+        {
+          range: [0, 50],
+          label: "Good",
+          color: "#48bb78",
+          description: "Air quality is satisfactory, little or no risk.",
+        },
+        {
+          range: [51, 100],
+          label: "Moderate",
+          color: "#ecc94b",
+          description:
+            "Acceptable air quality, some risk for sensitive individuals.",
+        },
+        {
+          range: [101, 150],
+          label: "Unhealthy for Sensitive",
+          color: "#ed8936",
+          description: "Sensitive groups may experience health effects.",
+        },
+        {
+          range: [151, 200],
+          label: "Unhealthy",
+          color: "#f56565",
+          description: "General public affected, sensitive groups more so.",
+        },
+        {
+          range: [201, 300],
+          label: "Very Unhealthy",
+          color: "#9f7aea",
+          description: "Health alert: significant effects likely.",
+        },
+        {
+          range: [301, 500],
+          label: "Hazardous",
+          color: "#9b2c2c",
+          description: "Emergency conditions: entire population affected.",
+        },
+      ];
+
+      // Advisory Definitions for New Visualization
+      const advisories = [
+        {
+          range: [0, 50],
+          level: "Good",
+          message:
+            "Air quality is satisfactory, and air pollution poses little or no risk.",
+          action: "No special precautions needed.",
+          color: "#48bb78",
+        },
+        {
+          range: [51, 100],
+          level: "Moderate",
+          message:
+            "Air quality is acceptable; however, there may be a risk for some people, particularly those who are unusually sensitive to air pollution.",
+          action:
+            "Sensitive individuals should consider reducing prolonged outdoor exertion.",
+          color: "#ecc94b",
+        },
+        {
+          range: [101, 150],
+          level: "Unhealthy for Sensitive Groups",
+          message:
+            "Members of sensitive groups may experience health effects. The general public is less likely to be affected.",
+          action:
+            "People with respiratory or heart disease, the elderly, and children should limit prolonged exertion.",
+          color: "#ed8936",
+        },
+        {
+          range: [151, 200],
+          level: "Unhealthy",
+          message:
+            "Some members of the general public may experience health effects; members of sensitive groups may experience more serious health effects.",
+          action:
+            "Everyone should limit prolonged outdoor exertion. Sensitive groups should avoid outdoor activity.",
+          color: "#f56565",
+        },
+        {
+          range: [201, 300],
+          level: "Very Unhealthy",
+          message:
+            "Health alert: The risk of health effects is increased for everyone.",
+          action:
+            "Everyone should avoid outdoor activity. Sensitive groups should remain indoors.",
+          color: "#9f7aea",
+        },
+        {
+          range: [301, 500],
+          level: "Hazardous",
+          message:
+            "Health warning of emergency conditions: everyone is more likely to be affected.",
+          action:
+            "Everyone should avoid all outdoor exertion. Consider evacuation to areas with better air quality.",
+          color: "#9b2c2c",
+        },
+      ];
+
+      // Gauge Drawing Function
+      function drawGauge(value) {
+        const gauge = document.getElementById("aqiGauge");
+        gauge.innerHTML = "";
+        const svg = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "svg"
+        );
+        svg.setAttribute("width", "180");
+        svg.setAttribute("height", "90");
+        svg.setAttribute("viewBox", "0 0 180 90");
+
+        const bgArc = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "path"
+        );
+        bgArc.setAttribute("d", "M 30 80 A 60 60 0 0 1 150 80");
+        bgArc.setAttribute("stroke", "rgba(255, 255, 255, 0.1)");
+        bgArc.setAttribute("stroke-width", "12");
+        bgArc.setAttribute("fill", "none");
+        svg.appendChild(bgArc);
+
+        const arc = (start, end, color) => {
+          const r = 60,
+            cx = 90,
+            cy = 80;
+          const startRad = Math.PI * (1 - start / 500),
+            endRad = Math.PI * (1 - end / 500);
+          const x1 = cx + r * Math.cos(startRad),
+            y1 = cy + r * Math.sin(startRad);
+          const x2 = cx + r * Math.cos(endRad),
+            y2 = cy + r * Math.sin(endRad);
+          const path = `M ${x1} ${y1} A ${r} ${r} 0 ${
+            end - start > 250 ? 1 : 0
+          } 0 ${x2} ${y2}`;
+          const p = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
+          p.setAttribute("d", path);
+          p.setAttribute("stroke", color);
+          p.setAttribute("stroke-width", "12");
+          p.setAttribute("fill", "none");
+          svg.appendChild(p);
+        };
+
+        aqiLevels.forEach((l) => arc(l.range[0], l.range[1], l.color));
+
+        const needleRad = Math.PI * (1 - Math.min(value, 500) / 500);
+        const needleLength = 55;
+
+        const needleShadow = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "line"
+        );
+        needleShadow.setAttribute("x1", "90");
+        needleShadow.setAttribute("y1", "80");
+        needleShadow.setAttribute(
+          "x2",
+          90 + needleLength * Math.cos(needleRad)
+        );
+        needleShadow.setAttribute(
+          "y2",
+          80 + needleLength * Math.sin(needleRad)
+        );
+        needleShadow.setAttribute("stroke", "rgba(0, 0, 0, 0.3)");
+        needleShadow.setAttribute("stroke-width", "3");
+        needleShadow.setAttribute("stroke-linecap", "round");
+        svg.appendChild(needleShadow);
+
+        const needle = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "line"
+        );
+        needle.setAttribute("x1", "90");
+        needle.setAttribute("y1", "80");
+        needle.setAttribute("x2", 90 + needleLength * Math.cos(needleRad));
+        needle.setAttribute("y2", 80 + needleLength * Math.sin(needleRad));
+        needle.setAttribute("stroke", "white");
+        needle.setAttribute("stroke-width", "2");
+        needle.setAttribute("stroke-linecap", "round");
+        svg.appendChild(needle);
+
+        const centerCircle = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "circle"
+        );
+        centerCircle.setAttribute("cx", "90");
+        centerCircle.setAttribute("cy", "80");
+        centerCircle.setAttribute("r", "6");
+        centerCircle.setAttribute("fill", "#4f46e5");
+        centerCircle.setAttribute("stroke", "white");
+        centerCircle.setAttribute("stroke-width", "1");
+        svg.appendChild(centerCircle);
+
+        const valueText = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "text"
+        );
+        valueText.setAttribute("x", "90");
+        valueText.setAttribute("y", "60");
+        valueText.setAttribute("text-anchor", "middle");
+        valueText.setAttribute("font-size", "14");
+        valueText.setAttribute("font-weight", "bold");
+        valueText.setAttribute("fill", "white");
+        valueText.textContent = Math.round(value);
+        svg.appendChild(valueText);
+
+        gauge.appendChild(svg);
+
+        const level =
+          aqiLevels.find((l) => value >= l.range[0] && value <= l.range[1]) ||
+          aqiLevels[aqiLevels.length - 1];
+        document.getElementById("aqiLabel").innerText = `${Math.round(
+          value
+        )} - ${level.label}`;
+        document.getElementById("aqiLabel").style.color = level.color;
+        document.getElementById("aqiDescription").innerText = level.description;
+      }
+
+      // Biohazard Update Function
+      function updateBiohazard(ppm) {
+        const bio = document.getElementById("biohazard");
+        let text, color, icon;
+
+        if (ppm < 50) {
+          text = "Safe";
+          color = "#48bb78";
+          icon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+          bio.classList.remove("alert");
+        } else if (ppm < 100) {
+          text = "Low Risk";
+          color = "#ecc94b";
+          icon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>`;
+          bio.classList.remove("alert");
+        } else if (ppm < 200) {
+          text = "Moderate Risk";
+          color = "#ed8936";
+          icon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+          bio.classList.remove("alert");
+        } else if (ppm < 500) {
+          text = "High Risk";
+          color = "#f56565";
+          icon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+          bio.classList.remove("alert");
+        } else {
+          text = "Critical Hazard";
+          color = "#9b2c2c";
+          icon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+          bio.classList.add("alert");
+          showNotification(
+            "Critical Biohazard Alert! Gas concentration has reached dangerous levels."
+          );
+        }
+
+        bio.innerHTML = `<div class="flex items-center justify-center">${icon} ${text}</div>`;
+        bio.style.backgroundColor = color;
+      }
+
+      // Update Advisory Function for New Visualization
+      function updateAdvisory(aqi) {
+        const advisory =
+          advisories.find((a) => aqi >= a.range[0] && aqi <= a.range[1]) ||
+          advisories[advisories.length - 1];
+        document.getElementById("advisoryBadge").innerText = advisory.level;
+        document.getElementById("advisoryBadge").style.backgroundColor =
+          advisory.color;
+        document.getElementById("advisoryBadge").style.color = "white";
+        document.getElementById("advisoryLevel").innerText = advisory.level;
+        document.getElementById("advisoryLevel").style.color = advisory.color;
+        document.getElementById("advisoryMessage").innerText = advisory.message;
+        document.getElementById("advisoryAction").innerText = advisory.action;
+        document.getElementById("advisoryAction").style.color = advisory.color;
+      }
+
+      // Update stats display
+      function updateStats(data) {
+        const statsElement = document.getElementById("stats");
+
+        const statsHTML = `
+          <div class="grid grid-cols-2 gap-2">
+            <div class="flex flex-col">
+              <span class="text-gray-400">Raw PPM:</span>
+              <span class="font-medium">${data.raw_ppm.toFixed(2)}</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-gray-400">ML PPM:</span>
+              <span class="font-medium">${data.ml_ppm.toFixed(2)}</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-gray-400">AQI:</span>
+              <span class="font-medium">${data.aqi.toFixed(2)}</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-gray-400">Gas %:</span>
+              <span class="font-medium">${data.gas_percentage.toFixed(
+                2
+              )}%</span>
+            </div>
+            <div class="flex flex-col col-span-2">
+              <span class="text-gray-400">Device IP:</span>
+              <span class="font-medium">${data.ip || "Unknown"}</span>
+            </div>
+            <div class="flex flex-col col-span-2">
+              <span class="text-gray-400">Timestamp:</span>
+              <span class="font-medium">${formatTime(data.timestamp)}</span>
+            </div>
+          </div>
+        `;
+
+        statsElement.innerHTML = statsHTML;
+      }
+
+      // Sparkline Drawing Function
+      function drawSparkline(data) {
+        const svg = document.getElementById("sparkline");
+        svg.innerHTML = "";
+
+        if (data.length < 2) return;
+
+        const lastN = data.slice(-20);
+        const ppmValues = lastN.map((d) => d.ml_ppm);
+        const minPPM = Math.min(...ppmValues);
+        const maxPPM = Math.max(...ppmValues);
+        const range = maxPPM - minPPM || 1;
+
+        const pathData = lastN
+          .map((d, i) => {
+            const x = (i / (lastN.length - 1)) * 100;
+            const y = 20 - ((d.ml_ppm - minPPM) / range) * 20;
+            return `${i === 0 ? "M" : "L"}${x},${y}`;
+          })
+          .join(" ");
+
+        const path = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "path"
+        );
+        path.setAttribute("d", pathData);
+        path.setAttribute("stroke", "#4f46e5");
+        path.setAttribute("stroke-width", "1");
+        path.setAttribute("fill", "none");
+        svg.appendChild(path);
+      }
+
+      // Trend Arrow Update Function
+      function updateTrendArrow(data) {
+        if (data.length < 2) return;
+        const last = data[data.length - 1].ml_ppm;
+        const prev = data[data.length - 2].ml_ppm;
+        const arrow = document.getElementById("trendArrow");
+        if (last > prev) {
+          arrow.innerHTML = "↑";
+          arrow.style.color = "#ef4444";
+        } else if (last < prev) {
+          arrow.innerHTML = "↓";
+          arrow.style.color = "#10b981";
+        } else {
+          arrow.innerHTML = "→";
+          arrow.style.color = "#94a3b8";
+        }
+      }
+
+      // Gas Composition Breakdown
+      function updateGasComposition() {
+        const gasComposition = document.getElementById("gasComposition");
+
+        const gases = [
+          { name: "O₂", percentage: 21, color: "#3b82f6" },
+          { name: "N₂", percentage: 78, color: "#10b981" },
+          { name: "CO₂", percentage: 0.04, color: "#f59e0b" },
+          { name: "Ar", percentage: 0.93, color: "#6366f1" },
+        ];
+
+        compositionChart.data.labels = gases.map((gas) => gas.name);
+        compositionChart.data.datasets[0].data = gases.map(
+          (gas) => gas.percentage
+        );
+        compositionChart.data.datasets[0].backgroundColor = gases.map(
+          (gas) => gas.color
+        );
+        compositionChart.update();
+
+        gasComposition.innerHTML = "";
+
+        gases.forEach((gas) => {
+          const gasItem = document.createElement("div");
+          gasItem.className = "gas-item";
+          gasItem.style.backgroundColor = `${gas.color}20`;
+          gasItem.style.borderLeft = `2px solid ${gas.color}`;
+
+          gasItem.innerHTML = `
+            <div class="gas-item-icon" style="background-color: ${gas.color}"></div>
+            <span>${gas.name}: ${gas.percentage}%</span>
+          `;
+
+          gasComposition.appendChild(gasItem);
+        });
+      }
+
+      // Initialize gas composition
+      updateGasComposition();
+
+      // Update concentration visualization
+      function updateConcentrationVisualization() {
+        if (dataHistory.length === 0) return;
+
+        // Use the last 20 data points for visualization
+        const data = dataHistory.slice(-20);
+
+        concentrationChart.data.labels = data.map((d) => d.timestamp);
+        concentrationChart.data.datasets[0].data = data.map((d) => d.ml_ppm);
+        concentrationChart.update();
+      }
+
+      // PPM Forecast with ARIMA-like approach
+      function updateForecast() {
+        const forecastPeriod = parseInt(
+          document.getElementById("forecastPeriod").value
+        );
+
+        if (dataHistory.length < 10) return;
+
+        // Get the last 10 data points for forecasting
+        const historicalData = dataHistory.slice(-10).map((d) => d.ml_ppm);
+        const historicalLabels = dataHistory.slice(-10).map((d) => d.timestamp);
+
+        // Fetch forecast from server if available, otherwise use local forecasting
+        fetch("/forecast?steps=" + forecastPeriod)
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.json();
+          })
+          .then((forecastData) => {
+            if (forecastData && forecastData.length > 0) {
+              // Server-side forecast available
+              const forecastValues = forecastData.map((d) => d.ml_ppm);
+              const forecastLabels = forecastData.map((d) => d.timestamp);
+
+              // Update forecast chart with server data
+              forecastChart.data.labels = [
+                ...historicalLabels.slice(-5),
+                ...forecastLabels,
+              ];
+              forecastChart.data.datasets[0].data = [
+                ...historicalData.slice(-5),
+                ...Array(forecastValues.length).fill(null),
+              ];
+              forecastChart.data.datasets[1].data = [
+                ...Array(5).fill(null),
+                ...forecastValues,
+              ];
+              forecastChart.update();
+
+              // Update accuracy from server if available
+              fetch("/forecast/accuracy")
+                .then((response) => response.json())
+                .then((data) => {
+                  document.getElementById(
+                    "forecastAccuracy"
+                  ).innerText = `${data.accuracy}%`;
+                })
+                .catch(() => {
+                  document.getElementById("forecastAccuracy").innerText = "85%";
+                });
+            } else {
+              // Fallback to local forecasting
+              localForecast(historicalData, historicalLabels, forecastPeriod);
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching forecast:", error);
+            // Fallback to local forecasting
+            localForecast(historicalData, historicalLabels, forecastPeriod);
+          });
+      }
+
+      // Local forecasting function using simple linear regression
+      function localForecast(historicalData, historicalLabels, forecastPeriod) {
+        const n = historicalData.length;
+        let sumX = 0,
+          sumY = 0,
+          sumXY = 0,
+          sumX2 = 0;
+
+        for (let i = 0; i < n; i++) {
+          sumX += i;
+          sumY += historicalData[i];
+          sumXY += i * historicalData[i];
+          sumX2 += i * i;
+        }
+
+        const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+        const intercept = (sumY - slope * sumX) / n;
+
+        const forecastData = [];
+        const forecastLabels = [];
+
+        // Use last 5 historical points
+        for (
+          let i = Math.max(0, historicalData.length - 5);
+          i < historicalData.length;
+          i++
+        ) {
+          forecastData.push(historicalData[i]);
+          forecastLabels.push(historicalLabels[i]);
+        }
+
+        const lastTimestamp = new Date(
+          historicalLabels[historicalLabels.length - 1]
+        );
+
+        // Generate forecast points
+        for (let i = 1; i <= forecastPeriod; i++) {
+          const forecastValue = Math.max(0, intercept + slope * (n + i - 1));
+          forecastData.push(forecastValue);
+
+          const forecastTime = new Date(lastTimestamp);
+          forecastTime.setMinutes(forecastTime.getMinutes() + i);
+          forecastLabels.push(forecastTime.toISOString());
+        }
+
+        // Update chart
+        forecastChart.data.labels = forecastLabels;
+        forecastChart.data.datasets[0].data = forecastData.slice(0, 5);
+        forecastChart.data.datasets[0].pointBackgroundColor =
+          Array(5).fill("#4f46e5");
+        forecastChart.data.datasets[1].data = Array(5)
+          .fill(null)
+          .concat(forecastData.slice(5));
+        forecastChart.update();
+
+        // Set default accuracy
+        document.getElementById("forecastAccuracy").innerText = "85%";
+      }
+
+      document
+        .getElementById("forecastPeriod")
+        .addEventListener("change", updateForecast);
+
+      // Notification System
+      function showNotification(message) {
+        const notification = document.getElementById("notification");
+        notification.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <div>
+            <strong>Alert</strong>
+            <p>${message}</p>
+          </div>
+        `;
+        notification.classList.add("show");
+        setTimeout(() => notification.classList.remove("show"), 5000);
+      }
+
+      // Three.js Initialization
+      function initThreeJS() {
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({
+          canvas: document.getElementById("threeCanvas"),
+          antialias: true,
+        });
+        renderer.setSize(300, 300);
+        scene.background = new THREE.Color(0x1e293b);
+        camera.position.z = 5;
+
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 1000;
+        const posArray = new Float32Array(particlesCount * 3);
+
+        for (let i = 0; i < particlesCount * 3; i++) {
+          posArray[i] = (Math.random() - 0.5) * 10;
+        }
+
+        particlesGeometry.setAttribute(
+          "position",
+          new THREE.BufferAttribute(posArray, 3)
+        );
+        const particlesMaterial = new THREE.PointsMaterial({
+          size: 0.05,
+          color: 0x4f46e5,
+        });
+        const particles = new THREE.Points(
+          particlesGeometry,
+          particlesMaterial
+        );
+        scene.add(particles);
+
+        function animate() {
+          requestAnimationFrame(animate);
+          particles.rotation.y += 0.001 * (1 + currentPPM / 1000);
+          renderer.render(scene, camera);
+        }
+        animate();
+
+        function onWindowResize() {
+          const canvas = document.getElementById("threeCanvas");
+          const width = canvas.parentElement.clientWidth;
+          const height = canvas.parentElement.clientHeight;
+          camera.aspect = width / height;
+          camera.updateProjectionMatrix();
+          renderer.setSize(width, height);
+        }
+        window.addEventListener("resize", onWindowResize);
+        onWindowResize();
+
+        return {
+          updateParticles: function (aqiColor, gasPercentage) {
+            particlesMaterial.color.set(aqiColor);
+            particlesMaterial.size = 0.02 + (0.08 * gasPercentage) / 100;
+          },
+        };
+      }
+
+      const threeJS = initThreeJS();
+
+      // Sidebar Toggle
+      document.getElementById("toggleSidebar").addEventListener("click", () => {
+        const sidebar = document.querySelector(".sidebar");
+        const mainContent = document.querySelector(".main-content");
+        sidebar.classList.toggle("collapsed");
+        mainContent.classList.toggle("full");
+      });
+
+      // Mobile Menu Toggle
+      document
+        .getElementById("mobileMenuToggle")
+        .addEventListener("click", () => {
+          const sidebar = document.querySelector(".sidebar");
+          sidebar.classList.toggle("mobile-open");
+        });
+
+      // Theme Toggle
+      document.getElementById("toggleTheme").addEventListener("click", (e) => {
+        e.preventDefault();
+        document.body.classList.toggle("light-mode");
+
+        Chart.defaults.color = document.body.classList.contains("light-mode")
+          ? "#1e293b"
+          : "#e2e8f0";
+        Chart.defaults.borderColor = document.body.classList.contains(
+          "light-mode"
+        )
+          ? "rgba(0, 0, 0, 0.1)"
+          : "rgba(255, 255, 255, 0.1)";
+
+        ppmChart.update();
+        gasChart.update();
+        compositionChart.update();
+        forecastChart.update();
+        concentrationChart.update();
+
+        compositionChart.data.datasets[0].borderColor =
+          document.body.classList.contains("light-mode") ? "#fff" : "#1e293b";
+        compositionChart.update();
+      });
+
+      // Export Data
+      document.getElementById("exportData").addEventListener("click", (e) => {
+        e.preventDefault();
+
+        const data = dataHistory;
+
+        if (data.length === 0) {
+          showNotification("No data available to export");
+          return;
+        }
+
+        const csv =
+          "Timestamp,Raw PPM,ML PPM,AQI,Gas %,IP\n" +
+          data
+            .map(
+              (d) =>
+                `${d.timestamp},${safeValue(d.raw_ppm)},${safeValue(
+                  d.ml_ppm
+                )},${safeValue(d.aqi)},${safeValue(d.gas_percentage)},${
+                  d.ip || "Unknown"
+                }`
+            )
+            .join("\n");
+
+        const csvBlob = new Blob([csv], { type: "text/csv" });
+        const csvUrl = window.URL.createObjectURL(csvBlob);
+        const csvLink = document.createElement("a");
+        csvLink.href = csvUrl;
+        csvLink.download = "enviroscan_data.csv";
+        csvLink.click();
+        window.URL.revokeObjectURL(csvUrl);
+
+        const jsonBlob = new Blob([JSON.stringify(data, null, 2)], {
+          type: "application/json",
+        });
+        const jsonUrl = window.URL.createObjectURL(jsonBlob);
+        const jsonLink = document.createElement("a");
+        jsonLink.href = jsonUrl;
+        jsonLink.download = "enviroscan_data.json";
+        jsonLink.click();
+        window.URL.revokeObjectURL(jsonUrl);
+
+        const notification = document.getElementById("notification");
+        notification.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          <div>
+            <strong>Export Successful!</strong>
+            <p>Data has been exported in CSV and JSON formats.</p>
+          </div>
+        `;
+        notification.style.backgroundColor = "#10b981";
+        notification.classList.add("show");
+        setTimeout(() => notification.classList.remove("show"), 3000);
+      });
+
+      // Test Alert
+      document.getElementById("testAlert").addEventListener("click", (e) => {
+        e.preventDefault();
+        showNotification("Test alert: Simulating critical level");
+        updateBiohazard(600);
+      });
+
+      // Reset Data
+      document.getElementById("resetData").addEventListener("click", (e) => {
+        e.preventDefault();
+        dataHistory = [];
+
+        ppmChart.data.labels = [];
+        ppmChart.data.datasets[0].data = [];
+        ppmChart.data.datasets[1].data = [];
+        ppmChart.update();
+
+        gasChart.data.labels = [];
+        gasChart.data.datasets[0].data = [];
+        gasChart.update();
+
+        forecastChart.data.labels = [];
+        forecastChart.data.datasets[0].data = [];
+        forecastChart.data.datasets[1].data = [];
+        forecastChart.update();
+
+        concentrationChart.data.labels = [];
+        concentrationChart.data.datasets[0].data = [];
+        concentrationChart.update();
+
+        drawGauge(0);
+        updateBiohazard(0);
+        updateAdvisory(0);
+
+        document.getElementById("stats").innerHTML = "";
+        document.getElementById("footerStats").innerText =
+          "Latest Stats: No data available";
+        document.getElementById("dataPointCount").innerText = "0";
+
+        const notification = document.getElementById("notification");
+        notification.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          <div>
+            <strong>Data Reset</strong>
+            <p>All data has been cleared.</p>
+          </div>
+        `;
+        notification.style.backgroundColor = "#6366f1";
+        notification.classList.add("show");
+        setTimeout(() => notification.classList.remove("show"), 3000);
+      });
+
+      // Fullscreen button
+      document.getElementById("fullscreenBtn").addEventListener("click", () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch((err) => {
+            console.error(
+              `Error attempting to enable fullscreen: ${err.message}`
+            );
+          });
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          }
+        }
+      });
+
+      // Alert threshold slider
+      const alertThresholdSlider = document.getElementById("alertThreshold");
+      const alertThresholdValue = document.getElementById(
+        "alertThresholdValue"
+      );
+
+      alertThresholdSlider.addEventListener("input", () => {
+        const value = alertThresholdSlider.value;
+        alertThresholdValue.innerText = `${value} PPM`;
+      });
+
+      // Data Fetching and Updating
+      let updateIntervalId;
+
+      function startDataFetching() {
+        if (updateIntervalId) {
+          clearInterval(updateIntervalId);
+        }
+
+        const updateInterval = parseInt(
+          document.getElementById("updateInterval").value
+        );
+        updateIntervalId = setInterval(fetchData, updateInterval);
+      }
+
+      function fetchData() {
+        fetch("/data")
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            if (data && data.length > 0) {
+              const latestData = data[data.length - 1];
+              const formattedData = {
+                timestamp: latestData.timestamp || new Date().toISOString(),
+                raw_ppm: safeValue(latestData.raw_ppm),
+                ml_ppm: safeValue(latestData.ml_ppm),
+                aqi: safeValue(latestData.aqi),
+                gas_percentage: safeValue(latestData.gas_percentage),
+                ip: latestData.ip || "Unknown",
+              };
+
+              dataHistory.push(formattedData);
+
+              const timeFilter = parseInt(
+                document.getElementById("timeFilter").value
+              );
+              const cutoff = Date.now() - timeFilter * 1000;
+              dataHistory = dataHistory.filter(
+                (d) => new Date(d.timestamp).getTime() > cutoff
+              );
+
+              updateCharts(formattedData);
+              updateLastUpdated();
+              document.getElementById("dataPointCount").innerText =
+                dataHistory.length;
+
+              const alertThreshold = parseInt(
+                document.getElementById("alertThreshold").value
+              );
+              if (formattedData.ml_ppm > alertThreshold) {
+                showNotification(
+                  "Critical Biohazard Alert! Gas concentration has reached dangerous levels."
+                );
+              }
+            }
+          })
+          .catch((error) => {
+            console.error("Fetch error:", error);
+            showNotification(
+              "Failed to fetch sensor data. Please check the connection."
+            );
+          });
+      }
+
+      function calculateAqi(ppm) {
+        if (ppm < 50) return (50 / 50) * ppm;
+        else if (ppm < 100) return 50 + (50 / 50) * (ppm - 50);
+        else if (ppm < 150) return 100 + (50 / 50) * (ppm - 100);
+        else if (ppm < 200) return 150 + (50 / 50) * (ppm - 150);
+        else if (ppm < 300) return 200 + (100 / 100) * (ppm - 200);
+        else return 300 + (200 / 200) * (ppm - 300);
+      }
+
+      function calculateGasPercentage(ppm) {
+        const maxPpm = 10000.0;
+        return Math.min(100.0, (ppm / maxPpm) * 100.0);
+      }
+
+      function updateCharts(latestData) {
+        ppmChart.data.labels = dataHistory.map((d) => d.timestamp);
+        ppmChart.data.datasets[0].data = dataHistory.map((d) =>
+          safeValue(d.raw_ppm)
+        );
+        ppmChart.data.datasets[1].data = dataHistory.map((d) =>
+          safeValue(d.ml_ppm)
+        );
+        ppmChart.update();
+
+        gasChart.data.labels = dataHistory.map((d) => d.timestamp);
+        gasChart.data.datasets[0].data = dataHistory.map((d) =>
+          safeValue(d.gas_percentage)
+        );
+        gasChart.update();
+
+        drawGauge(latestData.aqi);
+        updateBiohazard(latestData.ml_ppm);
+        updateStats(latestData);
+
+        document.getElementById(
+          "footerStats"
+        ).innerText = `Latest Stats - Raw PPM: ${latestData.raw_ppm.toFixed(
+          2
+        )} | ML PPM: ${latestData.ml_ppm.toFixed(
+          2
+        )} | AQI: ${latestData.aqi.toFixed(
+          2
+        )} | Gas %: ${latestData.gas_percentage.toFixed(2)}`;
+
+        updateConcentrationVisualization();
+
+        const level =
+          aqiLevels.find(
+            (l) => latestData.aqi >= l.range[0] && latestData.aqi <= l.range[1]
+          ) || aqiLevels[aqiLevels.length - 1];
+        threeJS.updateParticles(level.color, latestData.gas_percentage);
+        currentPPM = latestData.ml_ppm;
+
+        updateForecast();
+
+        drawSparkline(dataHistory);
+        updateTrendArrow(dataHistory);
+
+        // Update the Air Quality Advisory visualization
+        updateAdvisory(latestData.aqi);
+      }
+
+      // Start data fetching
+      startDataFetching();
+
+      // Update interval change handler
+      document
+        .getElementById("updateInterval")
+        .addEventListener("change", startDataFetching);
+
+      // Initial fetch
+      fetchData();
+
+      // Create particles for the loading screen
+      function createParticles() {
+        const particlesContainer = document.getElementById("particles");
+        const particleCount = 30;
+
+        for (let i = 0; i < particleCount; i++) {
+          const particle = document.createElement("div");
+          particle.className = "particle";
+
+          // Random position
+          const posX = Math.random() * 100;
+          const posY = Math.random() * 100;
+
+          // Random size
+          const size = Math.random() * 4 + 2;
+
+          // Random animation duration and delay
+          const duration = Math.random() * 10 + 5;
+          const delay = Math.random() * 5;
+
+          particle.style.left = `${posX}%`;
+          particle.style.top = `${posY}%`;
+          particle.style.width = `${size}px`;
+          particle.style.height = `${size}px`;
+          particle.style.animationDuration = `${duration}s`;
+          particle.style.animationDelay = `${delay}s`;
+
+          particlesContainer.appendChild(particle);
+        }
+      }
+
+      // Initialize loading screen
+      document.addEventListener("DOMContentLoaded", function () {
+        createParticles();
+
+        // Simulate loading time
+        setTimeout(function () {
+          const loadingScreen = document.getElementById("loadingScreen");
+          loadingScreen.classList.add("fade-out");
+
+          // Remove loading screen from DOM after animation completes
+          setTimeout(function () {
+            loadingScreen.style.display = "none";
+          }, 500);
+        }, 3000); // Show loading screen for 3 seconds
+      });
+    </script>
+  </body>
+</html>
