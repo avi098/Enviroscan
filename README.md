@@ -8,7 +8,7 @@
 ## 📁 Project Structure
 
 ```
-iot/
+Enviroscan/
 ├── aqi_model.joblib        # Trained ML model for AQI prediction
 ├── scaler.joblib           # Feature scaler used in model training
 ├── enviroscan.py           # Python Flask app to receive and display data
@@ -36,7 +36,7 @@ iot/
 ### Python Side
 
 1. Install Python 3.7 or above.
-2. Navigate to the `iot` folder in your terminal.
+2. Navigate to the `Enviroscan` folder in your terminal.
 3. Create a virtual environment (optional but recommended):
    ```bash
    python -m venv venv
